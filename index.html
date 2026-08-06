@@ -84,34 +84,8 @@
     .num-btn.target{background:linear-gradient(180deg, rgba(77,211,123,.26), rgba(255,255,255,.03)); border-color:rgba(77,211,123,.34); color:#dffbe8; box-shadow:0 14px 26px rgba(0,0,0,.18); }
     .num-btn.disabled{opacity:.45; filter:grayscale(.2); }
     .history-log{border-top:1px solid var(--line); padding-top:14px; display:flex; flex-direction:column; gap:8px; margin-top:4px; }
-    .log-item{display:flex; justify-content:space-between; gap:12px; padding-bottom:8px; border-bottom:1px dashed rgba(255,255,255,.06); color:var(--muted); font-size:.95rem; }
-    .calendar-layout{display:grid; grid-template-columns:.95fr 1.05fr; gap:20px; margin-top:20px; }
-    .calendar-panel,.leader-panel{padding:22px; }
-    .calendar-controls{display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin:14px 0 18px; }
-    .game-list{display:flex; flex-direction:column; gap:10px; max-height:470px; overflow:auto; padding-right:4px; }
-    .game-item{padding:16px; border-radius:18px; border:1px solid var(--line); background:rgba(255,255,255,.03); display:flex; justify-content:space-between; gap:12px; align-items:flex-start; }
-    .game-item h4{margin:0 0 6px; font-size:1rem; }
-    .mini{color:var(--muted); font-size:.88rem; }
-    .leaderboard-table td:first-child{font-weight:800; }
-    .rank{font-family:'Bebas Neue', cursive; font-size:1.18rem; color:var(--accent-2); letter-spacing:.04em; }
-    .modal{position:fixed; inset:0; z-index:100; display:none; align-items:center; justify-content:center; padding:20px; background:rgba(0,0,0,.6); backdrop-filter:blur(8px); }
-    .modal.open{ display:flex; }
-    .modal-card{width:min(920px, 100%); max-height:90vh; overflow:auto; border-radius:26px; border:1px solid var(--line); background:linear-gradient(180deg, #132433, #0d1b26); box-shadow:var(--shadow); padding:24px; }
-    .modal-head{display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:18px; }
-    .final-grid{display:grid; grid-template-columns:1fr 1fr; gap:18px; }
-    .final-box{padding:16px; border-radius:18px; border:1px solid var(--line); background:rgba(255,255,255,.03); }
-    .empty{color:var(--muted); border:1px dashed var(--line); border-radius:16px; padding:18px; text-align:center; }
-    .reveal{opacity:0; transform:translateY(18px); transition:opacity .6s ease, transform .6s ease; }
-    .reveal.visible{opacity:1; transform:translateY(0); }
-    .stagger > *{opacity:0; transform:translateY(14px); animation:rise .6s ease forwards; }
-    .stagger > *:nth-child(1){animation-delay:.05s}
-    .stagger > *:nth-child(2){animation-delay:.12s}
-    .stagger > *:nth-child(3){animation-delay:.19s}
-    .stagger > *:nth-child(4){animation-delay:.26s}
-    .stagger > *:nth-child(5){animation-delay:.33s}
-    @keyframes rise{to{opacity:1; transform:translateY(0);} }
-    @media (max-width:1100px){.hero,.game-layout,.calendar-layout,.final-grid{grid-template-columns:1fr; } }
-    @media (max-width:760px){.topbar-inner{flex-direction:column; align-items:flex-start; } .top-actions{width:100%; justify-content:flex-start; } .setup-grid{grid-template-columns:1fr; } .player-row{grid-template-columns:1fr; } .number-grid{grid-template-columns:repeat(4, minmax(0,1fr)); } .field-track{grid-template-columns:repeat(3, 1fr); } th:nth-child(4), td:nth-child(4){display:none; } }
+    @media (max-width:1100px){.hero,.game-layout{grid-template-columns:1fr; } }
+    @media (max-width:760px){.topbar-inner{flex-direction:column; align-items:flex-start; } .top-actions{width:100%; justify-content:flex-start; } .setup-grid{grid-template-columns:1fr; } .player-row{grid-template-columns:1fr; } .number-grid{grid-template-columns:repeat(4, minmax(0,1fr)); } }
     @media (max-width:520px){.facts{grid-template-columns:1fr} .dart-strip{grid-template-columns:1fr} .number-grid{grid-template-columns:repeat(3, minmax(0,1fr))} }
   </style>
 </head>
@@ -124,44 +98,41 @@
         <div class="subtitle">Nine innings minimum. Each inning has a target number. Only hits on the current inning target score runs: single = 1, double = 2, triple = 3, quad = 4 (quad board mode). If tied after 9, keep playing extra innings until there is a winner.</div>
       </div>
       <div class="top-actions">
-        <button class="btn secondary" id="leaderboardBtn">Leaderboard</button>
-        <button class="btn ghost" id="showHistoryBtn">Played Games</button>
         <button class="btn warn" id="newGameBtnTop">New Game</button>
       </div>
     </div>
   </header>
+
   <main class="wrap">
     <section class="hero">
-      <section class="panel setup reveal">
-        <div class="stagger">
+      <section class="panel setup">
+        <div>
+          <p class="eyebrow">Game Setup</p>
+          <h2 class="section-title">Players and match controls</h2>
+          <p class="muted">Add two or more players. Innings 1 through 9 target numbers 1 through 9. Selecting Quad Board adds a 4x multiplier button for quad hits.</p>
+        </div>
+        <div class="setup-grid">
           <div>
-            <p class="eyebrow">Game Setup</p>
-            <h2 class="section-title">Players and match controls</h2>
-            <p class="muted">Add two or more players. Each round is one inning. Innings 1 through 9 target numbers 1 through 9. If the game is tied after inning 9, extra innings continue with targets 10, 11, 12 and so on through 20, then Bull, then wraps back to 1.</p>
+            <div id="playerList" class="player-list"></div>
+            <div style="display:flex; gap:10px; margin-top:12px; flex-wrap:wrap;">
+              <button class="btn secondary" id="addPlayerBtn">Add Player</button>
+              <button class="btn primary" id="startGameBtn">Start New Live Game</button>
+            </div>
           </div>
-          <div class="setup-grid">
-            <div>
-              <div id="playerList" class="player-list"></div>
-              <div style="display:flex; gap:10px; margin-top:12px; flex-wrap:wrap;">
-                <button class="btn secondary" id="addPlayerBtn">Add Player</button>
-                <button class="btn primary" id="startGameBtn">Start New Live Game</button>
-              </div>
-            </div>
-            <div class="setup-side">
-              <label for="boardType" class="eyebrow" style="font-size:.72rem;">Board Type</label>
-              <select id="boardType" class="select-input">
-                <option value="basic">Basic Board</option>
-                <option value="quad">Quad Board</option>
-              </select>
-              <label for="playedDate" class="eyebrow" style="font-size:.72rem;">Played date</label>
-              <input id="playedDate" class="date-input" type="date" />
-              <button class="btn ghost" id="todayBtn">Use Today</button>
-              <div class="muted" style="font-size:.9rem;">Used when saving the finished game to history.</div>
-            </div>
+          <div class="setup-side">
+            <label for="boardType" class="eyebrow" style="font-size:.72rem;">Board Type</label>
+            <select id="boardType" class="select-input">
+              <option value="basic">Basic Board</option>
+              <option value="quad">Quad Board</option>
+            </select>
+            <label for="playedDate" class="eyebrow" style="font-size:.72rem;">Played date</label>
+            <input id="playedDate" class="date-input" type="date" />
+            <button class="btn ghost" id="todayBtn">Use Today</button>
           </div>
         </div>
       </section>
-      <aside class="panel facts reveal">
+
+      <aside class="panel facts">
         <div class="fact">
           <div class="k">Game Length</div>
           <div class="v">9+ Innings</div>
@@ -180,8 +151,9 @@
         </div>
       </aside>
     </section>
+
     <section class="game-layout">
-      <section class="panel scoreboard reveal">
+      <section class="panel scoreboard">
         <div class="scoreboard-head">
           <div>
             <p class="eyebrow">Live Match</p>
@@ -193,7 +165,7 @@
             <div class="badge highlight" id="targetBadge">Target 1</div>
           </div>
         </div>
-        <div class="field-track" id="inningTrack"></div>
+
         <div style="overflow:auto;">
           <table>
             <thead>
@@ -209,15 +181,9 @@
             <tbody id="scoreboardBody"></tbody>
           </table>
         </div>
-        <div class="history-log">
-          <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
-            <h3 class="section-title" style="font-size:1.05rem;">Play Log</h3>
-            <div class="muted" id="logSummary">No darts thrown yet.</div>
-          </div>
-          <div id="turnLog"></div>
-        </div>
       </section>
-      <section class="panel turn-panel reveal">
+
+      <section class="panel turn-panel">
         <div class="turn-top">
           <div>
             <p class="eyebrow">At the line</p>
@@ -230,6 +196,7 @@
             <div class="tag" id="dartsLeftTag">Darts Left: 3</div>
           </div>
         </div>
+
         <div class="dart-strip">
           <div class="dart-box">
             <div class="n">Dart 1</div>
@@ -244,6 +211,7 @@
             <div class="v" id="dartDisplay3">—</div>
           </div>
         </div>
+
         <div class="selection">
           <div>
             <p class="eyebrow" style="font-size:.72rem;">Multiplier</p>
@@ -254,10 +222,12 @@
               <button class="pill-btn" data-multiplier="4" id="quadMultiplierBtn" style="display:none;">Quad (4x)</button>
             </div>
           </div>
+
           <div>
             <p class="eyebrow" style="font-size:.72rem;">Targets</p>
             <div class="number-grid" id="numberGrid"></div>
           </div>
+
           <div>
             <p class="eyebrow" style="font-size:.72rem;">Actions</p>
             <div class="action-row">
@@ -270,256 +240,246 @@
       </section>
     </section>
   </main>
-      <script>
-  const STORAGE_KEYS = { activeGame: 'baseball_darts_active_v1', history: 'baseball_darts_history_v1', leaderboard: 'baseball_darts_leaderboard_v1' };
-  const state = { activeGame: null, selectedMultiplier: 1, history: [], snapshots: [] };
 
-  const $ = (id) => document.getElementById(id);
+  <script>
+    const state = { activeGame: null, selectedMultiplier: 1, snapshots: [] };
+    const $ = (id) => document.getElementById(id);
 
-  function todayStr() {
-    const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-  }
-
-  function clone(obj) { return JSON.parse(JSON.stringify(obj)); }
-
-  function multiplierName(m) {
-    return m === 4 ? 'Quad' : m === 3 ? 'Triple' : m === 2 ? 'Double' : 'Single';
-  }
-
-  function getSetupNames() {
-    return Array.from(document.querySelectorAll('.player-input'))
-      .map(i => i.value.trim())
-      .filter(n => n.length > 0);
-  }
-
-  function uniqueNames(names) {
-    return new Set(names).size === names.length;
-  }
-
-  function getCurrentPlayer() {
-    if (!state.activeGame) return null;
-    return state.activeGame.players[state.activeGame.currentPlayerIndex];
-  }
-
-  function currentTarget() {
-    if (!state.activeGame) return 1;
-    const inning = state.activeGame.inning;
-    if (inning <= 20) return inning;
-    return 25; // Bull
-  }
-
-  function snapshot() {
-    if (state.activeGame) {
-      state.snapshots.push(clone(state.activeGame));
+    function todayStr() {
+      const d = new Date();
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
     }
-  }
 
-  function createNewGame(names, boardType = 'basic') {
-    return {
-      id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
-      date: $('playedDate').value || todayStr(),
-      boardType,
-      inning: 1,
-      currentPlayerIndex: 0,
-      currentDartIndex: 0,
-      players: names.map(name => ({
-        name,
-        score: 0,
-        totalMarks: 0,
-        currentInningRuns: 0,
-        currentInningDarts: []
-      })),
-      status: 'active'
-    };
-  }
+    function clone(obj) { return JSON.parse(JSON.stringify(obj)); }
 
-  function addPlayerInput(name = '') {
-    const container = $('playerList');
-    const row = document.createElement('div');
-    row.className = 'player-row';
-    row.innerHTML = `
-      <input type="text" class="input player-input" placeholder="Player Name" value="${name}">
-      <button class="btn warn" onclick="this.parentElement.remove()">X</button>
-    `;
-    container.appendChild(row);
-  }
-
-  function startGame() {
-    const names = getSetupNames();
-    if (names.length < 2) { alert('Please enter at least 2 player names.'); return; }
-    if (!uniqueNames(names)) { alert('Player names must be unique.'); return; }
-
-    const boardType = $('boardType').value;
-    state.activeGame = createNewGame(names, boardType);
-    state.snapshots = [clone(state.activeGame)];
-    renderAll();
-  }
-
-  function advanceTurn() {
-    const game = state.activeGame;
-    const player = getCurrentPlayer();
-    
-    player.currentInningDarts = [];
-    player.currentInningRuns = 0;
-    game.currentDartIndex = 0;
-    
-    game.currentPlayerIndex++;
-    if (game.currentPlayerIndex >= game.players.length) {
-      game.currentPlayerIndex = 0;
-      game.inning++;
+    function multiplierName(m) {
+      return m === 4 ? 'Quad' : m === 3 ? 'Triple' : m === 2 ? 'Double' : 'Single';
     }
-    state.selectedMultiplier = 1;
-  }
 
-  function throwDart(base, mult, isMiss = false) {
-    const game = state.activeGame;
-    if (!game || game.status !== 'active') return;
-    const player = getCurrentPlayer();
-    if (!player) return;
-
-    snapshot();
-    const target = currentTarget();
-    const matchesTarget = !isMiss && base === target;
-    const runs = matchesTarget ? mult : 0;
-    const marks = isMiss ? 0 : mult;
-
-    const dart = {
-      order: game.currentDartIndex + 1,
-      base: isMiss ? 0 : base,
-      multiplier: isMiss ? 0 : mult,
-      label: isMiss ? 'Miss' : `${multiplierName(mult)} ${base === 25 ? 'Bull' : base}`,
-      runs,
-      marks,
-      matchedTarget: matchesTarget
-    };
-
-    player.currentInningDarts.push(dart);
-    player.currentInningRuns += runs;
-    player.score += runs;
-    player.totalMarks += marks;
-    game.currentDartIndex += 1;
-
-    if (game.currentDartIndex >= 3) {
-      advanceTurn();
-    } else {
-      state.selectedMultiplier = 1;
+    function getSetupNames() {
+      return Array.from(document.querySelectorAll('.player-input'))
+        .map(i => i.value.trim())
+        .filter(n => n.length > 0);
     }
-    renderAll();
-  }
 
-  function undoLast() {
-    if (state.snapshots.length > 0) {
-      state.activeGame = state.snapshots.pop();
+    function uniqueNames(names) {
+      return new Set(names).size === names.length;
+    }
+
+    function getCurrentPlayer() {
+      if (!state.activeGame) return null;
+      return state.activeGame.players[state.activeGame.currentPlayerIndex];
+    }
+
+    function currentTarget() {
+      if (!state.activeGame) return 1;
+      const inning = state.activeGame.inning;
+      if (inning <= 20) return inning;
+      return 25; // Bull
+    }
+
+    function snapshot() {
+      if (state.activeGame) state.snapshots.push(clone(state.activeGame));
+    }
+
+    function createNewGame(names, boardType = 'basic') {
+      return {
+        id: String(Date.now()),
+        date: $('playedDate').value || todayStr(),
+        boardType,
+        inning: 1,
+        currentPlayerIndex: 0,
+        currentDartIndex: 0,
+        players: names.map(name => ({
+          name,
+          score: 0,
+          totalMarks: 0,
+          currentInningRuns: 0,
+          currentInningDarts: []
+        })),
+        status: 'active'
+      };
+    }
+
+    function addPlayerInput(name = '') {
+      const container = $('playerList');
+      const row = document.createElement('div');
+      row.className = 'player-row';
+      row.innerHTML = `
+        <input type="text" class="input player-input" placeholder="Player Name" value="${name}">
+        <button class="btn warn" onclick="this.parentElement.remove()">X</button>
+      `;
+      container.appendChild(row);
+    }
+
+    function startGame() {
+      const names = getSetupNames();
+      if (names.length < 2) { alert('Please enter at least 2 player names.'); return; }
+      if (!uniqueNames(names)) { alert('Player names must be unique.'); return; }
+
+      const boardType = $('boardType').value;
+      state.activeGame = createNewGame(names, boardType);
+      state.snapshots = [clone(state.activeGame)];
       state.selectedMultiplier = 1;
       renderAll();
     }
-  }
 
-  function renderNumberGrid() {
-    const grid = $('numberGrid');
-    grid.innerHTML = '';
-    const target = currentTarget();
-
-    for (let i = 1; i <= 20; i++) {
-      const btn = document.createElement('button');
-      btn.className = `num-btn ${i === target ? 'target' : ''}`;
-      btn.textContent = i;
-      btn.onclick = () => throwDart(i, state.selectedMultiplier);
-      grid.appendChild(btn);
+    function advanceTurn() {
+      const game = state.activeGame;
+      const player = getCurrentPlayer();
+      player.currentInningDarts = [];
+      player.currentInningRuns = 0;
+      game.currentDartIndex = 0;
+      
+      game.currentPlayerIndex++;
+      if (game.currentPlayerIndex >= game.players.length) {
+        game.currentPlayerIndex = 0;
+        game.inning++;
+      }
+      state.selectedMultiplier = 1;
     }
 
-    const bullBtn = document.createElement('button');
-    bullBtn.className = `num-btn ${target === 25 ? 'target' : ''}`;
-    bullBtn.textContent = 'Bull';
-    bullBtn.onclick = () => throwDart(25, state.selectedMultiplier);
-    grid.appendChild(bullBtn);
-  }
+    function throwDart(base, mult, isMiss = false) {
+      const game = state.activeGame;
+      if (!game || game.status !== 'active') return;
+      const player = getCurrentPlayer();
+      if (!player) return;
 
-  function renderAll() {
-    const game = state.activeGame;
-    const selectedBoardType = game ? game.boardType : $('boardType').value;
-    const quadBtn = $('quadMultiplierBtn');
-    const boardBadge = $('boardBadge');
+      snapshot();
+      const target = currentTarget();
+      const matchesTarget = !isMiss && base === target;
+      const runs = matchesTarget ? mult : 0;
+      const marks = isMiss ? 0 : mult;
 
-    if (selectedBoardType === 'quad') {
-      if (quadBtn) quadBtn.style.display = 'inline-block';
-      if (boardBadge) boardBadge.textContent = 'Quad Board';
-    } else {
-      if (quadBtn) quadBtn.style.display = 'none';
-      if (boardBadge) boardBadge.textContent = 'Basic Board';
-      if (state.selectedMultiplier === 4) state.selectedMultiplier = 1;
+      const dart = {
+        order: game.currentDartIndex + 1,
+        label: isMiss ? 'Miss' : `${multiplierName(mult)} ${base === 25 ? 'Bull' : base}`,
+        runs
+      };
+
+      player.currentInningDarts.push(dart);
+      player.currentInningRuns += runs;
+      player.score += runs;
+      player.totalMarks += marks;
+      game.currentDartIndex += 1;
+
+      if (game.currentDartIndex >= 3) {
+        advanceTurn();
+      } else {
+        state.selectedMultiplier = 1;
+      }
+      renderAll();
     }
 
-    document.querySelectorAll('#multiplierRow .pill-btn').forEach(btn => {
-      const mult = parseInt(btn.dataset.multiplier, 10);
-      btn.classList.toggle('active', mult === state.selectedMultiplier);
-    });
-
-    if ($('selectedMultiplierTag')) {
-      $('selectedMultiplierTag').textContent = `Selected: ${multiplierName(state.selectedMultiplier)}`;
-    }
-
-    renderNumberGrid();
-
-    if (!game) return;
-
-    const player = getCurrentPlayer();
-    $('currentPlayerName').textContent = player.name;
-    $('currentPlayerSub').textContent = `Inning ${game.inning} — Target: ${currentTarget() === 25 ? 'Bull' : currentTarget()}`;
-    $('inningBadge').textContent = `Inning ${game.inning}`;
-    $('targetBadge').textContent = `Target ${currentTarget() === 25 ? 'Bull' : currentTarget()}`;
-    $('dartsLeftTag').textContent = `Darts Left: ${3 - game.currentDartIndex}`;
-    $('inningRunPreview').textContent = `Inning Runs: ${player.currentInningRuns}`;
-
-    // Update Dart Displays
-    for (let i = 1; i <= 3; i++) {
-      const dart = player.currentInningDarts[i - 1];
-      $(`dartDisplay${i}`).textContent = dart ? `${dart.label} (+${dart.runs})` : '—';
-    }
-
-    // Render Scoreboard Body
-    const tbody = $('scoreboardBody');
-    tbody.innerHTML = '';
-    game.players.forEach((p, idx) => {
-      const tr = document.createElement('tr');
-      if (idx === game.currentPlayerIndex) tr.className = 'active-row';
-      tr.innerHTML = `
-        <td><strong>${p.name}</strong></td>
-        <td><span class="score-pill">${p.score}</span></td>
-        <td>${p.currentInningRuns}</td>
-        <td>${p.currentInningDarts.length} / 3</td>
-        <td>${p.totalMarks}</td>
-        <td>${idx === game.currentPlayerIndex ? 'At Bat' : 'Waiting'}</td>
-      `;
-      tbody.appendChild(tr);
-    });
-  }
-
-  // Initialization & Event Listeners
-  document.addEventListener('DOMContentLoaded', () => {
-    $('playedDate').value = todayStr();
-    addPlayerInput('Player 1');
-    addPlayerInput('Player 2');
-
-    $('addPlayerBtn').onclick = () => addPlayerInput();
-    $('startGameBtn').onclick = startGame;
-    $('forceNewGameBtn').onclick = startGame;
-    $('newGameBtnTop').onclick = startGame;
-    $('missBtn').onclick = () => throwDart(0, 0, true);
-    $('undoBtn').onclick = undoLast;
-    $('todayBtn').onclick = () => { $('playedDate').value = todayStr(); };
-    $('boardType').onchange = renderAll;
-
-    document.querySelectorAll('#multiplierRow .pill-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        state.selectedMultiplier = parseInt(btn.dataset.multiplier, 10);
+    function undoLast() {
+      if (state.snapshots.length > 0) {
+        state.activeGame = state.snapshots.pop();
+        state.selectedMultiplier = 1;
         renderAll();
-      });
-    });
+      }
+    }
 
-    renderAll();
-  });
-</script>
+    function renderNumberGrid() {
+      const grid = $('numberGrid');
+      grid.innerHTML = '';
+      const target = currentTarget();
+
+      for (let i = 1; i <= 20; i++) {
+        const btn = document.createElement('button');
+        btn.className = `num-btn ${i === target ? 'target' : ''}`;
+        btn.textContent = i;
+        btn.onclick = () => throwDart(i, state.selectedMultiplier);
+        grid.appendChild(btn);
+      }
+
+      const bullBtn = document.createElement('button');
+      bullBtn.className = `num-btn ${target === 25 ? 'target' : ''}`;
+      bullBtn.textContent = 'Bull';
+      bullBtn.onclick = () => throwDart(25, state.selectedMultiplier);
+      grid.appendChild(bullBtn);
+    }
+
+    function renderAll() {
+      const game = state.activeGame;
+      const selectedBoardType = game ? game.boardType : $('boardType').value;
+      const quadBtn = $('quadMultiplierBtn');
+      const boardBadge = $('boardBadge');
+
+      if (selectedBoardType === 'quad') {
+        if (quadBtn) quadBtn.style.display = 'inline-block';
+        if (boardBadge) boardBadge.textContent = 'Quad Board';
+      } else {
+        if (quadBtn) quadBtn.style.display = 'none';
+        if (boardBadge) boardBadge.textContent = 'Basic Board';
+        if (state.selectedMultiplier === 4) state.selectedMultiplier = 1;
+      }
+
+      document.querySelectorAll('#multiplierRow .pill-btn').forEach(btn => {
+        const mult = parseInt(btn.dataset.multiplier, 10);
+        btn.classList.toggle('active', mult === state.selectedMultiplier);
+      });
+
+      if ($('selectedMultiplierTag')) {
+        $('selectedMultiplierTag').textContent = `Selected: ${multiplierName(state.selectedMultiplier)}`;
+      }
+
+      renderNumberGrid();
+
+      if (!game) return;
+
+      const player = getCurrentPlayer();
+      $('currentPlayerName').textContent = player.name;
+      $('currentPlayerSub').textContent = `Inning ${game.inning} — Target: ${currentTarget() === 25 ? 'Bull' : currentTarget()}`;
+      $('inningBadge').textContent = `Inning ${game.inning}`;
+      $('targetBadge').textContent = `Target ${currentTarget() === 25 ? 'Bull' : currentTarget()}`;
+      $('dartsLeftTag').textContent = `Darts Left: ${3 - game.currentDartIndex}`;
+      $('inningRunPreview').textContent = `Inning Runs: ${player.currentInningRuns}`;
+
+      for (let i = 1; i <= 3; i++) {
+        const dart = player.currentInningDarts[i - 1];
+        $(`dartDisplay${i}`).textContent = dart ? `${dart.label} (+${dart.runs})` : '—';
+      }
+
+      const tbody = $('scoreboardBody');
+      tbody.innerHTML = '';
+      game.players.forEach((p, idx) => {
+        const tr = document.createElement('tr');
+        if (idx === game.currentPlayerIndex) tr.className = 'active-row';
+        tr.innerHTML = `
+          <td><strong>${p.name}</strong></td>
+          <td><span class="score-pill">${p.score}</span></td>
+          <td>${p.currentInningRuns}</td>
+          <td>${p.currentInningDarts.length} / 3</td>
+          <td>${p.totalMarks}</td>
+          <td>${idx === game.currentPlayerIndex ? 'At Bat' : 'Waiting'}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      $('playedDate').value = todayStr();
+      addPlayerInput('Player 1');
+      addPlayerInput('Player 2');
+
+      $('addPlayerBtn').onclick = () => addPlayerInput();
+      $('startGameBtn').onclick = startGame;
+      $('forceNewGameBtn').onclick = startGame;
+      $('newGameBtnTop').onclick = startGame;
+      $('missBtn').onclick = () => throwDart(0, 0, true);
+      $('undoBtn').onclick = undoLast;
+      $('todayBtn').onclick = () => { $('playedDate').value = todayStr(); };
+      $('boardType').onchange = renderAll;
+
+      document.querySelectorAll('#multiplierRow .pill-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          state.selectedMultiplier = parseInt(btn.dataset.multiplier, 10);
+          renderAll();
+        });
+      });
+
+      renderAll();
+    });
+  </script>
 </body>
 </html>
