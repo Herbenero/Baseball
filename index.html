@@ -272,132 +272,256 @@
   </main>
 
   <script>
-    const STORAGE_KEYS = {activeGame: 'baseball_darts_active_v1', history: 'baseball_darts_history_v1', leaderboard: 'baseball_darts_leaderboard_v1'};
-    const state = {activeGame: null, finishedGamePending: null, selectedMultiplier: 1, historyFilter: '', history: [], leaderboard: {}, snapshots: []};
+    <script>
+  const STORAGE_KEYS = { activeGame: 'baseball_darts_active_v1', history: 'baseball_darts_history_v1', leaderboard: 'baseball_darts_leaderboard_v1' };
+  const state = { activeGame: null, selectedMultiplier: 1, history: [], snapshots: [] };
 
-    const $ = (id) => document.getElementById(id);
+  const $ = (id) => document.getElementById(id);
 
-    function todayStr() {
-      const d = new Date();
-      const m = String(d.getMonth() + 1).padStart(2, '0');
-      const day = String(d.getDate()).padStart(2, '0');
-      return `${d.getFullYear()}-${m}-${day}`;
+  function todayStr() {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  }
+
+  function clone(obj) { return JSON.parse(JSON.stringify(obj)); }
+
+  function multiplierName(m) {
+    return m === 4 ? 'Quad' : m === 3 ? 'Triple' : m === 2 ? 'Double' : 'Single';
+  }
+
+  function getSetupNames() {
+    return Array.from(document.querySelectorAll('.player-input'))
+      .map(i => i.value.trim())
+      .filter(n => n.length > 0);
+  }
+
+  function uniqueNames(names) {
+    return new Set(names).size === names.length;
+  }
+
+  function getCurrentPlayer() {
+    if (!state.activeGame) return null;
+    return state.activeGame.players[state.activeGame.currentPlayerIndex];
+  }
+
+  function currentTarget() {
+    if (!state.activeGame) return 1;
+    const inning = state.activeGame.inning;
+    if (inning <= 20) return inning;
+    return 25; // Bull
+  }
+
+  function snapshot() {
+    if (state.activeGame) {
+      state.snapshots.push(clone(state.activeGame));
     }
+  }
 
-    function clone(obj) { return JSON.parse(JSON.stringify(obj)); }
+  function createNewGame(names, boardType = 'basic') {
+    return {
+      id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
+      date: $('playedDate').value || todayStr(),
+      boardType,
+      inning: 1,
+      currentPlayerIndex: 0,
+      currentDartIndex: 0,
+      players: names.map(name => ({
+        name,
+        score: 0,
+        totalMarks: 0,
+        currentInningRuns: 0,
+        currentInningDarts: []
+      })),
+      status: 'active'
+    };
+  }
 
-    function multiplierName(m) {
-      return m === 4 ? 'Quad' : m === 3 ? 'Triple' : m === 2 ? 'Double' : 'Single';
+  function addPlayerInput(name = '') {
+    const container = $('playerList');
+    const row = document.createElement('div');
+    row.className = 'player-row';
+    row.innerHTML = `
+      <input type="text" class="input player-input" placeholder="Player Name" value="${name}">
+      <button class="btn warn" onclick="this.parentElement.remove()">X</button>
+    `;
+    container.appendChild(row);
+  }
+
+  function startGame() {
+    const names = getSetupNames();
+    if (names.length < 2) { alert('Please enter at least 2 player names.'); return; }
+    if (!uniqueNames(names)) { alert('Player names must be unique.'); return; }
+
+    const boardType = $('boardType').value;
+    state.activeGame = createNewGame(names, boardType);
+    state.snapshots = [clone(state.activeGame)];
+    renderAll();
+  }
+
+  function advanceTurn() {
+    const game = state.activeGame;
+    const player = getCurrentPlayer();
+    
+    player.currentInningDarts = [];
+    player.currentInningRuns = 0;
+    game.currentDartIndex = 0;
+    
+    game.currentPlayerIndex++;
+    if (game.currentPlayerIndex >= game.players.length) {
+      game.currentPlayerIndex = 0;
+      game.inning++;
     }
+    state.selectedMultiplier = 1;
+  }
 
-    function createNewGame(names, boardType='basic') {
-      return {
-        id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
-        date: $('playedDate').value || todayStr(),
-        boardType,
-        inning: 1,
-        currentPlayerIndex: 0,
-        currentDartIndex: 0,
-        minInnings: 9,
-        players: names.map(name => ({
-          name,
-          score: 0,
-          totalMarks: 0,
-          inningsPlayed: 0,
-          currentInningRuns: 0,
-          currentInningDarts: [],
-          inningRuns: {}
-        })),
-        turnLog: [],
-        winner: null,
-        status: 'active'
-      };
+  function throwDart(base, mult, isMiss = false) {
+    const game = state.activeGame;
+    if (!game || game.status !== 'active') return;
+    const player = getCurrentPlayer();
+    if (!player) return;
+
+    snapshot();
+    const target = currentTarget();
+    const matchesTarget = !isMiss && base === target;
+    const runs = matchesTarget ? mult : 0;
+    const marks = isMiss ? 0 : mult;
+
+    const dart = {
+      order: game.currentDartIndex + 1,
+      base: isMiss ? 0 : base,
+      multiplier: isMiss ? 0 : mult,
+      label: isMiss ? 'Miss' : `${multiplierName(mult)} ${base === 25 ? 'Bull' : base}`,
+      runs,
+      marks,
+      matchedTarget: matchesTarget
+    };
+
+    player.currentInningDarts.push(dart);
+    player.currentInningRuns += runs;
+    player.score += runs;
+    player.totalMarks += marks;
+    game.currentDartIndex += 1;
+
+    if (game.currentDartIndex >= 3) {
+      advanceTurn();
+    } else {
+      state.selectedMultiplier = 1;
     }
+    renderAll();
+  }
 
-    function startGame() {
-      const names = getSetupNames();
-      if (names.length < 2) { alert('Please enter at least 2 player names.'); return; }
-      if (!uniqueNames(names)) { alert('Player names must be unique.'); return; }
-      
-      const boardType = $('boardType').value;
-      state.activeGame = createNewGame(names, boardType);
-      state.finishedGamePending = null;
-      state.snapshots = [clone(state.activeGame)];
-      saveStorage();
+  function undoLast() {
+    if (state.snapshots.length > 0) {
+      state.activeGame = state.snapshots.pop();
+      state.selectedMultiplier = 1;
       renderAll();
     }
+  }
 
-    function throwDart(base, mult, isMiss=false) {
-      const game = state.activeGame;
-      if (!game || game.status !== 'active') return;
-      const player = getCurrentPlayer();
-      if (!player) return;
+  function renderNumberGrid() {
+    const grid = $('numberGrid');
+    grid.innerHTML = '';
+    const target = currentTarget();
 
-      snapshot();
-      const target = currentTarget();
-      const matchesTarget = !isMiss && base === target;
-      const runs = matchesTarget ? mult : 0;
-      const marks = isMiss ? 0 : mult;
-
-      const dart = {
-        order: game.currentDartIndex + 1,
-        base: isMiss ? 0 : base,
-        multiplier: isMiss ? 0 : mult,
-        label: isMiss ? 'Miss (0)' : `${multiplierName(mult)} ${base === 25 ? 'Bull' : base}`,
-        runs,
-        marks,
-        matchedTarget: matchesTarget,
-        isMiss
-      };
-
-      player.currentInningDarts.push(dart);
-      player.currentInningRuns += runs;
-      player.score += runs;
-      player.totalMarks += marks;
-      game.currentDartIndex += 1;
-
-      // Handle multipliers selection reset and UI updates
-      if (game.currentDartIndex >= 3) {
-        advanceTurn();
-      } else {
-        state.selectedMultiplier = 1;
-      }
-      saveStorage();
-      renderAll();
+    for (let i = 1; i <= 20; i++) {
+      const btn = document.createElement('button');
+      btn.className = `num-btn ${i === target ? 'target' : ''}`;
+      btn.textContent = i;
+      btn.onclick = () => throwDart(i, state.selectedMultiplier);
+      grid.appendChild(btn);
     }
 
-    function renderAll() {
-      const game = state.activeGame;
-      const quadBtn = $('quadMultiplierBtn');
-      const boardBadge = $('boardBadge');
+    const bullBtn = document.createElement('button');
+    bullBtn.className = `num-btn ${target === 25 ? 'target' : ''}`;
+    bullBtn.textContent = 'Bull';
+    bullBtn.onclick = () => throwDart(25, state.selectedMultiplier);
+    grid.appendChild(bullBtn);
+  }
 
-      if (game && game.boardType === 'quad') {
-        if (quadBtn) quadBtn.style.display = 'inline-block';
-        if (boardBadge) boardBadge.textContent = 'Quad Board';
-      } else {
-        if (quadBtn) quadBtn.style.display = 'none';
-        if (boardBadge) boardBadge.textContent = 'Basic Board';
-        if (state.selectedMultiplier === 4) state.selectedMultiplier = 1;
-      }
+  function renderAll() {
+    const game = state.activeGame;
+    const selectedBoardType = game ? game.boardType : $('boardType').value;
+    const quadBtn = $('quadMultiplierBtn');
+    const boardBadge = $('boardBadge');
 
-      // Sync multiplier buttons active status
-      document.querySelectorAll('#multiplierRow .pill-btn').forEach(btn => {
-        const mult = parseInt(btn.dataset.multiplier, 10);
-        btn.classList.toggle('active', mult === state.selectedMultiplier);
-      });
-
-      if ($('selectedMultiplierTag')) {
-        $('selectedMultiplierTag').textContent = `Selected: ${multiplierName(state.selectedMultiplier)}`;
-      }
+    if (selectedBoardType === 'quad') {
+      if (quadBtn) quadBtn.style.display = 'inline-block';
+      if (boardBadge) boardBadge.textContent = 'Quad Board';
+    } else {
+      if (quadBtn) quadBtn.style.display = 'none';
+      if (boardBadge) boardBadge.textContent = 'Basic Board';
+      if (state.selectedMultiplier === 4) state.selectedMultiplier = 1;
     }
 
-    // Attach multiplier click handler with support for 4x
+    document.querySelectorAll('#multiplierRow .pill-btn').forEach(btn => {
+      const mult = parseInt(btn.dataset.multiplier, 10);
+      btn.classList.toggle('active', mult === state.selectedMultiplier);
+    });
+
+    if ($('selectedMultiplierTag')) {
+      $('selectedMultiplierTag').textContent = `Selected: ${multiplierName(state.selectedMultiplier)}`;
+    }
+
+    renderNumberGrid();
+
+    if (!game) return;
+
+    const player = getCurrentPlayer();
+    $('currentPlayerName').textContent = player.name;
+    $('currentPlayerSub').textContent = `Inning ${game.inning} — Target: ${currentTarget() === 25 ? 'Bull' : currentTarget()}`;
+    $('inningBadge').textContent = `Inning ${game.inning}`;
+    $('targetBadge').textContent = `Target ${currentTarget() === 25 ? 'Bull' : currentTarget()}`;
+    $('dartsLeftTag').textContent = `Darts Left: ${3 - game.currentDartIndex}`;
+    $('inningRunPreview').textContent = `Inning Runs: ${player.currentInningRuns}`;
+
+    // Update Dart Displays
+    for (let i = 1; i <= 3; i++) {
+      const dart = player.currentInningDarts[i - 1];
+      $(`dartDisplay${i}`).textContent = dart ? `${dart.label} (+${dart.runs})` : '—';
+    }
+
+    // Render Scoreboard Body
+    const tbody = $('scoreboardBody');
+    tbody.innerHTML = '';
+    game.players.forEach((p, idx) => {
+      const tr = document.createElement('tr');
+      if (idx === game.currentPlayerIndex) tr.className = 'active-row';
+      tr.innerHTML = `
+        <td><strong>${p.name}</strong></td>
+        <td><span class="score-pill">${p.score}</span></td>
+        <td>${p.currentInningRuns}</td>
+        <td>${p.currentInningDarts.length} / 3</td>
+        <td>${p.totalMarks}</td>
+        <td>${idx === game.currentPlayerIndex ? 'At Bat' : 'Waiting'}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  // Initialization & Event Listeners
+  document.addEventListener('DOMContentLoaded', () => {
+    $('playedDate').value = todayStr();
+    addPlayerInput('Player 1');
+    addPlayerInput('Player 2');
+
+    $('addPlayerBtn').onclick = () => addPlayerInput();
+    $('startGameBtn').onclick = startGame;
+    $('forceNewGameBtn').onclick = startGame;
+    $('newGameBtnTop').onclick = startGame;
+    $('missBtn').onclick = () => throwDart(0, 0, true);
+    $('undoBtn').onclick = undoLast;
+    $('todayBtn').onclick = () => { $('playedDate').value = todayStr(); };
+    $('boardType').onchange = renderAll;
+
     document.querySelectorAll('#multiplierRow .pill-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         state.selectedMultiplier = parseInt(btn.dataset.multiplier, 10);
         renderAll();
       });
     });
-  </script>
+
+    renderAll();
+  });
+</script>
 </body>
 </html>
