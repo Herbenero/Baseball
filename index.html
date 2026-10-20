@@ -173,6 +173,11 @@
       border-left: 3px solid var(--accent);
     }
 
+    tr.winner-row {
+      background-color: rgba(247, 179, 51, 0.12);
+      border-left: 3px solid var(--accent2);
+    }
+
     /* Live Controls / At The Line */
     .status-box {
       background: var(--bg);
@@ -385,8 +390,9 @@
     let isQuadBoard = false;
     let throwHistory = []; // For undo capability
     let gameActive = false;
+    let gameOver = false;
 
-    // Track detailed throws for the current turn: stores { label, runs }
+    // Track detailed throws for the current turn: stores throw descriptions
     let currentTurnThrows = [];
 
     // Initialize date field
@@ -468,6 +474,7 @@
       currentTurnThrows = [];
       throwHistory = [];
       gameActive = true;
+      gameOver = false;
 
       document.getElementById('setupPanel').classList.add('hidden');
       document.getElementById('scoreboardPanel').classList.remove('hidden');
@@ -481,6 +488,7 @@
 
     function resetToSetup() {
       gameActive = false;
+      gameOver = false;
       document.getElementById('setupPanel').classList.remove('hidden');
       document.getElementById('scoreboardPanel').classList.add('hidden');
       document.getElementById('atTheLinePanel').classList.add('hidden');
@@ -501,10 +509,8 @@
         throwDesc = `${multNames[currentMultiplier]} (+${runsEarned})`;
       }
 
-      // Record throw info for display slots
       currentTurnThrows.push(throwDesc);
 
-      // Save state for undo capability
       throwHistory.push({
         playerIdx: currentPlayerIndex,
         inning: currentInning,
@@ -519,7 +525,6 @@
       player.inningRuns += runsEarned;
       currentDartsLeft--;
 
-      // Reset multiplier back to single after throw
       currentMultiplier = 1;
       updateMultiplierUI();
 
@@ -544,6 +549,10 @@
       player.inningRuns = last.playerInningRuns;
 
       currentMultiplier = 1;
+      gameOver = false;
+      gameActive = true;
+      document.getElementById('atTheLinePanel').classList.remove('hidden');
+
       updateMultiplierUI();
       renderAll();
     }
@@ -557,10 +566,8 @@
         currentPlayerIndex = 0;
         currentInning++;
 
-        // Reset inning runs for all players for the new inning
         players.forEach(p => p.inningRuns = 0);
 
-        // Check if game should end after completing an inning >= 9
         if (currentInning > maxInning) {
           let highestScore = -1;
           let isTie = false;
@@ -585,6 +592,7 @@
 
     function endGame() {
       gameActive = false;
+      gameOver = true;
       document.getElementById('atTheLinePanel').classList.add('hidden');
       document.getElementById('scoreboardTitle').innerText = "Final Match Scoreboard (Game Over)";
       renderScoreboard();
@@ -602,21 +610,39 @@
       let targetLabel = currentInning <= 9 ? currentInning : 'Bull (Extra)';
       document.getElementById('currentInningBadge').innerText = `Inning ${currentInning} (Target: ${targetLabel})`;
 
+      // Find highest score if game is over to highlight winner(s)
+      let winningScore = -1;
+      if (gameOver) {
+        players.forEach(p => {
+          if (p.totalRuns > winningScore) winningScore = p.totalRuns;
+        });
+      }
+
       players.forEach((p, idx) => {
         const tr = document.createElement('tr');
-        if (idx === currentPlayerIndex && gameActive) {
+        
+        let isWinner = gameOver && p.totalRuns === winningScore;
+
+        if (isWinner) {
+          tr.className = 'winner-row';
+        } else if (idx === currentPlayerIndex && gameActive) {
           tr.className = 'active-player';
         }
 
         let statusText = "Waiting";
-        if (idx === currentPlayerIndex && gameActive) statusText = "At The Line";
-        else if (idx < currentPlayerIndex || currentInning > 1) statusText = "Done This Inning";
+        if (isWinner) {
+          statusText = "🏆 Winner!";
+        } else if (idx === currentPlayerIndex && gameActive) {
+          statusText = "At The Line";
+        } else if (idx < currentPlayerIndex || currentInning > 1) {
+          statusText = "Done This Inning";
+        }
 
         tr.innerHTML = `
-          <td><strong>${p.name}</strong></td>
-          <td>${p.totalRuns}</td>
+          <td><strong>${p.name}</strong> ${isWinner ? '<span style="color: var(--accent2); margin-left: 6px;">⭐</span>' : ''}</td>
+          <td><strong style="${isWinner ? 'color: var(--accent2); font-size: 1.05rem;' : ''}">${p.totalRuns}</strong></td>
           <td>${p.inningRuns}</td>
-          <td><span style="font-size:0.8rem; color: var(--muted);">${statusText}</span></td>
+          <td><span style="font-size:0.8rem; color: ${isWinner ? 'var(--accent2)' : 'var(--muted)'}; font-weight: ${isWinner ? 'bold' : 'normal'};">${statusText}</span></td>
         `;
         tbody.appendChild(tr);
       });
@@ -632,7 +658,6 @@
       document.getElementById('statInningRuns').innerText = player.inningRuns;
       document.getElementById('statDartsLeft').innerText = currentDartsLeft;
 
-      // Update Dart Slots with actual throw results
       for (let i = 1; i <= 3; i++) {
         const slot = document.getElementById(`dart${i}Slot`);
         if (currentTurnThrows[i - 1]) {
