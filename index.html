@@ -386,6 +386,9 @@
     let throwHistory = []; // For undo capability
     let gameActive = false;
 
+    // Track detailed throws for the current turn: stores { label, runs }
+    let currentTurnThrows = [];
+
     // Initialize date field
     document.getElementById('matchDate').valueAsDate = new Date();
 
@@ -462,6 +465,7 @@
       currentPlayerIndex = 0;
       currentDartsLeft = 3;
       currentMultiplier = 1;
+      currentTurnThrows = [];
       throwHistory = [];
       gameActive = true;
 
@@ -489,19 +493,26 @@
 
       const player = players[currentPlayerIndex];
       let runsEarned = 0;
+      let throwDesc = "Miss";
 
       if (type === 'hit') {
         runsEarned = currentMultiplier;
+        const multNames = { 1: 'Single', 2: 'Double', 3: 'Triple', 4: 'Quad' };
+        throwDesc = `${multNames[currentMultiplier]} (+${runsEarned})`;
       }
 
-      // Save state for undo
+      // Record throw info for display slots
+      currentTurnThrows.push(throwDesc);
+
+      // Save state for undo capability
       throwHistory.push({
         playerIdx: currentPlayerIndex,
         inning: currentInning,
         dartsLeft: currentDartsLeft,
         runsEarned: runsEarned,
         playerTotalRuns: player.totalRuns,
-        playerInningRuns: player.inningRuns
+        playerInningRuns: player.inningRuns,
+        turnThrowsSnapshot: [...currentTurnThrows]
       });
 
       player.totalRuns += runsEarned;
@@ -526,6 +537,7 @@
       currentPlayerIndex = last.playerIdx;
       currentInning = last.inning;
       currentDartsLeft = last.dartsLeft;
+      currentTurnThrows = [...last.turnThrowsSnapshot];
 
       const player = players[currentPlayerIndex];
       player.totalRuns = last.playerTotalRuns;
@@ -538,6 +550,7 @@
 
     function nextTurn() {
       currentDartsLeft = 3;
+      currentTurnThrows = [];
       currentPlayerIndex++;
 
       if (currentPlayerIndex >= players.length) {
@@ -549,7 +562,6 @@
 
         // Check if game should end after completing an inning >= 9
         if (currentInning > maxInning) {
-          // Check if top scores are tied
           let highestScore = -1;
           let isTie = false;
           
@@ -566,7 +578,6 @@
             endGame();
             return;
           }
-          // If tied, loop continues into extra innings targeting Bullseye!
         }
       }
       renderAll();
@@ -621,12 +632,11 @@
       document.getElementById('statInningRuns').innerText = player.inningRuns;
       document.getElementById('statDartsLeft').innerText = currentDartsLeft;
 
-      // Dart slots visualization
-      const dartsThrown = 3 - currentDartsLeft;
+      // Update Dart Slots with actual throw results
       for (let i = 1; i <= 3; i++) {
         const slot = document.getElementById(`dart${i}Slot`);
-        if (i <= dartsThrown) {
-          slot.innerText = `Dart ${i}: Thrown`;
+        if (currentTurnThrows[i - 1]) {
+          slot.innerText = `Dart ${i}: ${currentTurnThrows[i - 1]}`;
           slot.style.color = 'var(--accent)';
         } else {
           slot.innerText = `Dart ${i}: —`;
