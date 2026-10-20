@@ -26,10 +26,12 @@
     }
 
     body {
-      background-color: var(--bg);
+      background: linear-gradient(rgba(2, 17, 31, 0.88), rgba(2, 17, 31, 0.88)), url('Baseball.png') no-repeat center center fixed;
+      background-size: cover;
       color: var(--text);
       margin: 0;
       padding: 20px;
+      min-height: 100vh;
     }
 
     header {
@@ -70,8 +72,9 @@
       background-color: var(--panel);
       border-radius: 12px;
       padding: 20px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.5);
       margin-bottom: 20px;
+      border: 1px solid rgba(255,255,255,0.05);
     }
 
     .panel h2 {
@@ -252,7 +255,7 @@
   <header>
     <div>
       <h1>BASEBALL DARTS</h1>
-      <p class="subtitle">Standard 9-Inning Rules with Configurable Modifiers</p>
+      <p class="subtitle">Standard 9-Inning Rules with Extra Innings Tiebreakers</p>
     </div>
     <button id="topNewGameBtn" class="secondary hidden" onclick="resetToSetup()">New Game</button>
   </header>
@@ -446,7 +449,7 @@
           name: name,
           totalRuns: 0,
           inningRuns: 0,
-          history: [] // stores runs per inning
+          history: []
         });
       });
 
@@ -544,9 +547,26 @@
         // Reset inning runs for all players for the new inning
         players.forEach(p => p.inningRuns = 0);
 
+        // Check if game should end after completing an inning >= 9
         if (currentInning > maxInning) {
-          endGame();
-          return;
+          // Check if top scores are tied
+          let highestScore = -1;
+          let isTie = false;
+          
+          players.forEach(p => {
+            if (p.totalRuns > highestScore) {
+              highestScore = p.totalRuns;
+              isTie = false;
+            } else if (p.totalRuns === highestScore) {
+              isTie = true;
+            }
+          });
+
+          if (!isTie) {
+            endGame();
+            return;
+          }
+          // If tied, loop continues into extra innings targeting Bullseye!
         }
       }
       renderAll();
@@ -568,8 +588,8 @@
       const tbody = document.getElementById('scoreTableBody');
       tbody.innerHTML = '';
 
-      let targetLabel = currentInning <= 9 ? currentInning : 'Bull';
-      document.getElementById('currentInningBadge').innerText = `Inning ${currentInning <= 9 ? currentInning : '9+'} (Target: ${targetLabel})`;
+      let targetLabel = currentInning <= 9 ? currentInning : 'Bull (Extra)';
+      document.getElementById('currentInningBadge').innerText = `Inning ${currentInning} (Target: ${targetLabel})`;
 
       players.forEach((p, idx) => {
         const tr = document.createElement('tr');
@@ -596,7 +616,7 @@
       const player = players[currentPlayerIndex];
       document.getElementById('activePlayerHeading').innerText = `${player.name}'s Turn`;
       
-      let targetLabel = currentInning <= 9 ? currentInning : 'Bull';
+      let targetLabel = currentInning <= 9 ? currentInning : 'Bull (Extra Inning)';
       document.getElementById('targetSubtext').innerText = `Target Number: ${targetLabel}`;
       document.getElementById('statInningRuns').innerText = player.inningRuns;
       document.getElementById('statDartsLeft').innerText = currentDartsLeft;
